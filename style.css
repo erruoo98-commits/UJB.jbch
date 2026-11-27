@@ -413,3 +413,19 @@ footer img { margin: 0 auto 8px; opacity: 0.85; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* 앱 받기 창 */
+.viewer-media .viewer-app {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: radial-gradient(80% 90% at 50% 40%, #2a78c4 0%, var(--blue-900) 100%);
+}
+.viewer-app .tile-icon { width: 108px; height: 108px; border-radius: 26px; box-shadow: 0 14px 34px rgba(0,0,0,.35); }
+.viewer-app .tile-icon svg { width: 46px; height: 46px; }
+.viewer-app .tile-icon .tag { font-size: 0.72rem; padding: 3px 6px; right: 6px; bottom: 6px; border-radius: 7px; }
+.go .store { width: 20px; height: 20px; stroke: none; fill: #fff; }
+.go.alt { margin-top: 10px; background: var(--surface); color: var(--blue-900); border: 1.5px solid var(--line); box-shadow: none; }
+.go.alt .store { fill: var(--blue-900); }
+.go.alt:active { background: var(--sky-50); }
+.viewer-note { margin-top: 10px !important; text-align: center; font-size: 0.82rem !important; }
+.go svg.line { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }   /* 지구 아이콘(선) */
+.go.alt svg.line { stroke: var(--blue-900); }

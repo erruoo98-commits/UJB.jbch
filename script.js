@@ -6,7 +6,12 @@
                       (대표 이미지가 없는 사이트는 화면 캡처로 대신함)
        thumb:'...'  → 직접 만든 사진 주소/파일 (예: 'img/blog.jpg') — shot보다 우선
        video:'...'  → 유튜브 영상 주소. 누르면 영상이 바로 재생됨
-       appId:'...'  → 앱스토어 앱 번호. 앱 아이콘을 자동으로 가져옴
+       appId:'...'  → 앱스토어 앱 번호. 앱 아이콘을 자동으로 가져오고 아이콘에 '앱' 표시가 붙음
+                      (앱 항목의 url = 아이폰 App Store 주소)
+       android:'...'→ 안드로이드 Google Play 주소. 안드로이드 폰에서는 이 주소로 열림
+                      (비워두면 안드로이드에서는 "아이폰 전용" 안내가 나옴)
+       web:'...'    → 앱을 안 깔고 바로 볼 수 있는 웹 주소. 채우면 누를 때
+                      "웹에서 바로 보기"와 "앱 받기" 중에 고르는 창이 떠요
        noShot:true  → 대표 이미지가 없을 때 화면 캡처로 대신하지 않음 (개인정보가 있는 사이트용)
        direct:true  → 미리보기 화면 없이 바로 이동 (앱스토어 연결 등)
        scheme:'...' → 앱 실행 주소 (예: 'myapp://'). 채우면 설치된 앱이 바로 열리고,
@@ -48,9 +53,16 @@ const SECTIONS = [
     title: '성도 앱·사이트',
     layout: 'grid',
     items: [
-      { name: '토브성경',          desc: '라이프성경',        icon: 'book',   url: 'https://bible.jbch.org/', shot: true },
-      { name: '암송수첩',          desc: '성경 암송 앱',      icon: 'kid',    url: 'https://apps.apple.com/kr/app/%EC%84%B1%EA%B2%BD%EC%95%94%EC%86%A1%EC%88%98%EC%B2%A9/id1529992404', appId: '1529992404', scheme: '', direct: true },
-      { name: '뿌리깊은싯딤나무',  short: '싯딤나무',   desc: '싯딤나무 Radio',    icon: 'mark',   url: 'https://apps.apple.com/kr/app/%EB%BF%8C%EB%A6%AC%EA%B9%8A%EC%9D%80-%EC%8B%AF%EB%94%A4%EB%82%98%EB%AC%B4/id552294904', appId: '552294904', scheme: '', direct: true },
+      { name: '토브성경',          desc: '라이프성경',        icon: 'book',   appId: '6473773823', scheme: '', direct: true,
+        url: 'https://apps.apple.com/kr/app/%ED%86%A0%EB%B8%8C%EC%84%B1%EA%B2%BD/id6473773823',
+        android: 'https://play.google.com/store/apps/details?id=org.jbch.tovbible_for_android',
+        web: 'https://bible.jbch.org/' },
+      { name: '암송수첩',          desc: '성경 암송 앱',      icon: 'kid',    appId: '1529992404', scheme: '', direct: true,
+        url: 'https://apps.apple.com/kr/app/%EC%84%B1%EA%B2%BD%EC%95%94%EC%86%A1%EC%88%98%EC%B2%A9/id1529992404',
+        android: 'https://play.google.com/store/apps/details?id=com.hkkim.biblerecitationnotebook' },
+      { name: '뿌리깊은싯딤나무',  short: '싯딤나무',   desc: '싯딤나무 Radio',    icon: 'mark',   appId: '552294904', scheme: '', direct: true,
+        url: 'https://apps.apple.com/kr/app/%EB%BF%8C%EB%A6%AC%EA%B9%8A%EC%9D%80-%EC%8B%AF%EB%94%A4%EB%82%98%EB%AC%B4/id552294904',
+        android: 'https://play.google.com/store/apps/details?id=org.jbch.shittimtree' },
       { name: '찬송 & 은혜찬송',   short: '찬송가',     desc: '찬송가 보기',       icon: 'music',  url: 'https://osan-chansong.web.app/', shot: true },
       /* 연락처 사이트: 화면 캡처가 공개 화면에 남지 않도록 미리보기 없이 바로 열려요 (noShot + direct) */
       { name: '성도연락처',        desc: '성도 주소록',       icon: 'people', url: 'https://phone.jbch.org/index.php', shot: true, noShot: true, direct: true },
@@ -431,8 +443,23 @@ async function showVisitors() {
 })();
 
 /* ---------------- 앱 열기 ---------------- */
-/* scheme이 있으면 설치된 앱을 먼저 열고, 안 열리면 앱스토어로 */
-function openApp(it) {
+/* 폰 종류 알아내기 */
+const PLATFORM = (() => {
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+  return 'other';
+})();
+
+/* 앱 열기: 아이폰 → App Store(scheme이 있으면 설치된 앱 먼저), 안드로이드 → Google Play,
+   컴퓨터이거나 그 폰용 앱이 없으면 → 스토어 고르는 창 */
+function openApp(it, opener) {
+  if (it.web) { openViewer(it, opener, true); return; }   /* 웹·앱 고르기 */
+  if (PLATFORM === 'android' && it.android) { window.open(it.android, '_blank', 'noopener'); return; }
+  if (PLATFORM === 'ios' && it.url) { openIosApp(it); return; }
+  openViewer(it, opener, true);
+}
+function openIosApp(it) {
   if (!it.scheme) { window.open(it.url, '_blank', 'noopener'); return; }
   let left = document.hidden;
   const onChange = () => { if (document.hidden) left = true; };
@@ -487,22 +514,52 @@ function setViewerImage(it) {
 
 function lockScroll(on) { document.documentElement.style.overflow = on ? 'hidden' : ''; }
 
-async function openViewer(it, opener) {
+const viewerMore = document.getElementById('viewer-more');
+const viewerNote = document.getElementById('viewer-note');
+const STORE_ICON = {
+  apple: '<svg class="store" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.4-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>',
+  play: '<svg class="store" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 2.6c-.3.3-.4.7-.4 1.2v16.4c0 .5.1.9.4 1.2l9.2-9.4z" fill="#00d7fe"/><path d="m16.5 15.1-3.1-3.1-9.2 9.4c.4.4.9.4 1.5.1z" fill="#f83c4e"/><path d="m16.5 8.9-10.8-6.4c-.6-.3-1.1-.3-1.5.1l9.2 9.4z" fill="#00f076"/><path d="m20.1 11-3.6-2.1-3.1 3.1 3.1 3.1 3.6-2.1c1-.6 1-1.4 0-2z" fill="#ffc900"/></svg>',
+};
+
+async function openViewer(it, opener, storeMode) {
   current = it;
   lastOpener = opener || null;
   viewerTitle.textContent = it.name.replace(/_/g, ' · ');
   viewerDesc.textContent = it.desc;
-  viewerGo.href = it.url;
-  viewerGo.innerHTML = `바로 열기 ${svg('out')}`;
+  viewerMore.innerHTML = '';
+  viewerNote.hidden = true;
 
-  const id = ytId(it.video);
+  if (storeMode) {
+    /* 앱 받기 창: 폰에서는 그 폰의 스토어만, 컴퓨터에서는 둘 다 */
+    const apple = it.url && { href: it.url, html: `${STORE_ICON.apple} App Store에서 앱 받기` };
+    const play = it.android && { href: it.android, html: `${STORE_ICON.play} Google Play에서 앱 받기` };
+    let stores = PLATFORM === 'ios' ? [apple] : PLATFORM === 'android' ? [play] : [apple, play];
+    stores = stores.filter(Boolean);
+    if (!stores.length) stores = [apple, play].filter(Boolean);
+    const links = it.web
+      ? [{ href: it.web, html: `${svg('globe', 'store line')} 앱 없이 웹에서 바로 보기` }, ...stores]
+      : stores;
+    viewerGo.href = links[0].href; viewerGo.innerHTML = links[0].html;
+    viewerMore.innerHTML = links.slice(1).map((l) =>
+      `<a class="go alt" href="${esc(l.href)}" target="_blank" rel="noopener noreferrer">${l.html}</a>`).join('');
+    if (!it.android && PLATFORM !== 'ios') { viewerNote.textContent = '이 앱은 아이폰(App Store)용만 있어요.'; viewerNote.hidden = false; }
+    else if (it.web) { viewerNote.textContent = '웹은 설치 없이 바로 열려요.'; viewerNote.hidden = false; }
+    viewerMedia.classList.remove('video');
+    viewerMedia.innerHTML = `<div class="viewer-app"><span class="tile-icon" data-app="${it.appId}">${svg(it.icon)}<span class="tag">앱</span></span></div>`;
+    paintAppIcons(viewerMedia);
+  } else {
+    viewerGo.href = it.url;
+    viewerGo.innerHTML = `바로 열기 ${svg('out')}`;
+  }
+
+  const id = storeMode ? '' : ytId(it.video);
   viewerMedia.classList.toggle('video', Boolean(id));
   if (id) {
     viewerMedia.innerHTML =
       `<iframe src="${ytEmbed(id, true)}" title="${esc(it.name)}" allowfullscreen
          allow="autoplay; accelerometer; encrypted-media; picture-in-picture; fullscreen"
          referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-  } else {
+  } else if (!storeMode) {
     viewerMedia.innerHTML = `<div class="viewer-fallback">${svg(it.icon)}<span>미리보기를 불러오는 중이에요</span></div>`;
     if (it.resolved || it.thumb || !it.shot) setViewerImage(it);
     else resolveImage(it).then(() => { if (current === it) setViewerImage(it); });
@@ -652,7 +709,7 @@ document.addEventListener('click', (e) => {
   if (chip) { q.value = chip.dataset.chip; runSearch(); return; }
   if (e.metaKey || e.ctrlKey || e.shiftKey) return;
   const app = e.target.closest('[data-open-app]');
-  if (app) { e.preventDefault(); openApp(ITEMS[app.dataset.openApp]); return; }
+  if (app) { e.preventDefault(); openApp(ITEMS[app.dataset.openApp], app); return; }
   const opener = e.target.closest('[data-view]');
   if (opener) { e.preventDefault(); openViewer(ITEMS[opener.dataset.view], opener); return; }
   if (e.target.closest('[data-share]')) { shareCurrent(); return; }
